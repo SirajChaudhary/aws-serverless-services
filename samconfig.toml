@@ -1,0 +1,20 @@
+# ==============================================================================
+# AWS SAM Configuration
+#
+# Stores the deployment configuration for the AWS SAM application.
+#
+# This file is automatically created or updated after running:
+#
+# sam deploy --guided
+# ==============================================================================
+
+version = 0.1
+[default.deploy.parameters]
+stack_name = "aws-serverless-services"
+resolve_s3 = true
+s3_prefix = "aws-serverless-services"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-south-1"

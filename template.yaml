@@ -1,0 +1,223 @@
+# ==============================================================================
+# AWS SAM Template
+#
+# Defines the AWS infrastructure for the AWS Serverless Services application.
+#
+# Responsibilities:
+# - Create AWS Lambda functions
+# - Create Amazon API Gateway
+# - Create Amazon S3 Bucket
+# - Create Amazon DynamoDB Table
+# - Create Amazon SNS Topic
+# - Configure EventBridge triggers
+# - Configure IAM permissions
+# - Configure Lambda environment variables
+#
+# How to Build & Deploy
+# ---------------------
+# mvn clean install
+# sam build
+# sam deploy --guided
+#
+# Deploy Options (Choose the following values)
+# --------------------------------------------
+# Stack Name                      : aws-serverless-services
+# AWS Region                      : ap-south-1
+# Confirm changes before deploy   : N
+# Allow SAM CLI IAM role creation : Y
+# Disable rollback                : N
+# Save arguments                  : Y
+# ==============================================================================
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Vehicle Registration Portal built using AWS Serverless Services
+
+# Common configuration shared across all Lambda functions
+Globals:
+  Function:
+    Runtime: java21
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+
+  # ============================================================================
+  # Amazon S3 Bucket
+  # Stores uploaded vehicle documents.
+  # ============================================================================
+
+  VehicleDocumentsBucket:
+    Type: AWS::S3::Bucket
+
+  # ============================================================================
+  # Amazon DynamoDB Table
+  # Stores vehicle registration details.
+  # ============================================================================
+
+  VehicleRegistrationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: requestId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: requestId
+          KeyType: HASH
+
+  # ============================================================================
+  # Amazon SNS Topic
+  # Sends notifications to applicants.
+  # ============================================================================
+
+  VehicleNotificationTopic:
+    Type: AWS::SNS::Topic
+
+  # ============================================================================
+  # Email Subscription
+  # Replace with your email address.
+  # ============================================================================
+
+  VehicleNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref VehicleNotificationTopic
+      Protocol: email
+      Endpoint: your-email@example.com
+
+  # ============================================================================
+  # Register Vehicle Lambda
+  # Receives registration requests from API Gateway.
+  # ============================================================================
+
+  RegisterVehicleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: RegisterVehicleLambda
+      CodeUri: register-vehicle-lambda/
+      Handler: com.example.vehicleregistration.handler.RegisterVehicleHandler::handleRequest
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          # Amazon S3 bucket for uploaded documents
+          DOCUMENT_BUCKET: !Ref VehicleDocumentsBucket
+
+          # Default Amazon EventBridge event bus
+          EVENT_BUS_NAME: default
+      Policies:
+        # Upload documents to Amazon S3
+        - S3CrudPolicy:
+            BucketName: !Ref VehicleDocumentsBucket
+
+        # Publish events to Amazon EventBridge
+        - EventBridgePutEventsPolicy:
+            EventBusName: default
+      Events:
+        RegisterVehicleApi:
+          Type: Api
+          Properties:
+            Path: /vehicles
+            Method: POST
+    Metadata:
+      BuildMethod: java21
+
+  # ============================================================================
+  # Save Vehicle Lambda
+  # Stores vehicle registration details in Amazon DynamoDB.
+  # ============================================================================
+
+  SaveVehicleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: SaveVehicleLambda
+      CodeUri: save-vehicle-lambda/
+      Handler: com.example.savevehicle.handler.SaveVehicleHandler::handleRequest
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          # Amazon DynamoDB table
+          VEHICLE_TABLE: !Ref VehicleRegistrationTable
+      Policies:
+        # Read and write vehicle registration records
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VehicleRegistrationTable
+      Events:
+        VehicleRegistrationSubmitted:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - vehicle.registration
+              detail-type:
+                - VehicleRegistrationSubmitted
+    Metadata:
+      BuildMethod: java21
+
+  # ============================================================================
+  # Notify Applicant Lambda
+  # Sends email notifications using Amazon SNS.
+  # ============================================================================
+
+  NotifyApplicantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: NotifyApplicantLambda
+      CodeUri: notify-applicant-lambda/
+      Handler: com.example.notifyapplicant.handler.NotifyApplicantHandler::handleRequest
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          # Amazon SNS Topic ARN
+          SNS_TOPIC_ARN: !Ref VehicleNotificationTopic
+      Policies:
+        # Publish notifications to Amazon SNS
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref VehicleNotificationTopic
+      Events:
+        VehicleRegistrationNotification:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - vehicle.registration
+              detail-type:
+                - VehicleRegistrationSubmitted
+    Metadata:
+      BuildMethod: java21
+
+Outputs:
+
+  VehicleRegistrationApi:
+    Description: Vehicle Registration REST API URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/vehicles"
+
+  RegisterVehicleLambdaArn:
+    Description: Register Vehicle Lambda ARN
+    Value: !GetAtt RegisterVehicleFunction.Arn
+
+  SaveVehicleLambdaArn:
+    Description: Save Vehicle Lambda ARN
+    Value: !GetAtt SaveVehicleFunction.Arn
+
+  NotifyApplicantLambdaArn:
+    Description: Notify Applicant Lambda ARN
+    Value: !GetAtt NotifyApplicantFunction.Arn
+
+  VehicleDocumentsBucketName:
+    Description: Amazon S3 Bucket Name
+    Value: !Ref VehicleDocumentsBucket
+
+  VehicleRegistrationTableName:
+    Description: Amazon DynamoDB Table Name
+    Value: !Ref VehicleRegistrationTable
+
+  VehicleNotificationTopicArn:
+    Description: Amazon SNS Topic ARN
+    Value: !Ref VehicleNotificationTopic

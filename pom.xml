@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+==============================================================================
+ Parent Maven Project
+
+ Defines the parent Maven project for the AWS Serverless Services repository.
+
+ Responsibilities:
+ - Manage child Maven modules
+ - Centralize dependency versions
+ - Centralize Maven plugin versions
+ - Define common project properties
+==============================================================================
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>aws-serverless-services</artifactId>
+    <version>1.0.0</version>
+
+    <!-- Parent project. No executable artifact is generated. -->
+    <packaging>pom</packaging>
+
+    <name>AWS Serverless Services</name>
+
+    <modules>
+        <module>shared</module>
+        <module>register-vehicle-lambda</module>
+        <module>save-vehicle-lambda</module>
+        <module>notify-applicant-lambda</module>
+    </modules>
+
+    <properties>
+
+        <!-- Java Version -->
+        <java.version>21</java.version>
+
+        <!-- Source Encoding -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Compiler Configuration -->
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+
+        <!-- AWS SDK Version -->
+        <aws.sdk.version>2.31.67</aws.sdk.version>
+
+        <!-- Dependency Versions -->
+        <aws.lambda.version>1.2.3</aws.lambda.version>
+        <aws.lambda.events.version>3.16.1</aws.lambda.events.version>
+        <jackson.version>2.22.0</jackson.version>
+        <lombok.version>1.18.38</lombok.version>
+        <junit.version>5.13.4</junit.version>
+
+        <!-- Plugin Versions -->
+        <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
+        <maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
+
+    </properties>
+
+    <!-- Dependency versions shared across all child modules. -->
+    <dependencyManagement>
+
+        <dependencies>
+
+            <!-- AWS SDK Bill of Materials -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- AWS Lambda Core -->
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-core</artifactId>
+                <version>${aws.lambda.version}</version>
+            </dependency>
+
+            <!-- AWS Lambda Event Models -->
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-lambda-java-events</artifactId>
+                <version>${aws.lambda.events.version}</version>
+            </dependency>
+
+            <!-- Jackson -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- JUnit -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Amazon S3 SDK -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${aws.sdk.version}</version>
+            </dependency>
+
+            <!-- Amazon EventBridge SDK -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>eventbridge</artifactId>
+                <version>${aws.sdk.version}</version>
+            </dependency>
+
+            <!-- Amazon SNS SDK -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sns</artifactId>
+                <version>${aws.sdk.version}</version>
+            </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
+    <!-- Maven plugins shared across all child modules. -->
+    <build>
+
+        <pluginManagement>
+
+            <plugins>
+
+                <!-- Java Compiler -->
+                <plugin>
+
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.compiler.plugin.version}</version>
+
+                    <configuration>
+                        <release>${java.version}</release>
+                    </configuration>
+
+                </plugin>
+
+                <!-- Unit Test Runner -->
+                <plugin>
+
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.plugin.version}</version>
+
+                </plugin>
+
+            </plugins>
+
+        </pluginManagement>
+
+    </build>
+
+</project>
